@@ -8,6 +8,7 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.HoverEvent;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Unit;
 import net.minecraft.util.math.BlockPos;
 import org.spongepowered.asm.mixin.Mixin;
@@ -35,8 +36,8 @@ public abstract class ServerPlayerEntityMixin {
 
         Text sleepMsgText = Text.literal(" " + randomMsg)
             .styled(style -> style
-                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.of("wake")))
-                .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
+                .withHoverEvent(new HoverEvent.ShowText(Text.of("wake")))
+                .withClickEvent(new ClickEvent.RunCommand(
                     "/trigger " + player.getNameForScoreboard() + " " + Main.wakeMsg))
                 .withColor(msgTextColor)
             );
