@@ -35,7 +35,7 @@ public abstract class CommandManagerMixin {
             feedbackMsg = Text.literal("why you trying to wake yourself lil bro? are you okay???")
                     .formatted(Formatting.GRAY).formatted(Formatting.ITALIC);
         } else {
-            for (ServerPlayerEntity sleeper : this.getPlayer().getServerWorld().getPlayers()) {
+            for (ServerPlayerEntity sleeper : this.getPlayer().getWorld().getPlayers()) {
                 if (sleeper.getNameForScoreboard().equals(splitCmd[1])) {
                     if (sleeper.isSleeping()) {
                         feedbackMsg = Text.literal("you woke up " + sleeper.getNameForScoreboard() + "!")

@@ -8,7 +8,6 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.HoverEvent;
 import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
 import net.minecraft.util.Unit;
 import net.minecraft.util.math.BlockPos;
 import org.spongepowered.asm.mixin.Mixin;
@@ -22,7 +21,7 @@ import java.util.Random;
 @Mixin(ServerPlayerEntity.class)
 public abstract class ServerPlayerEntityMixin {
 
-    @Shadow public abstract ServerWorld getServerWorld();
+    @Shadow public abstract ServerWorld getWorld();
 
     @Inject(method = "trySleep", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/world/ServerWorld;updateSleepingPlayers()V", shift = At.Shift.AFTER))
     private void sendSleepingStatus(BlockPos pos, CallbackInfoReturnable<Either<PlayerEntity.SleepFailureReason, Unit>> cir) {
@@ -44,7 +43,7 @@ public abstract class ServerPlayerEntityMixin {
 
         sleepMsgText = playerText.copy().append(sleepMsgText);
 
-        for(ServerPlayerEntity serverPlayerEntity : this.getServerWorld().getPlayers()) {
+        for(ServerPlayerEntity serverPlayerEntity : this.getWorld().getPlayers()) {
             serverPlayerEntity.sendMessage(sleepMsgText, false);
         }
     }
