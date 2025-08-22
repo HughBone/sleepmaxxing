@@ -42,8 +42,7 @@ public abstract class ServerPlayerEntityMixin {
       .literal(" " + randomMsg)
       .styled(style -> style
         .withHoverEvent(new HoverEvent.ShowText(Text.of("wake")))
-        .withClickEvent(new ClickEvent.RunCommand("/trigger " + player.getNameForScoreboard() +
-          " " + Main.wakeMsg))
+        .withClickEvent(new ClickEvent.RunCommand("/wakeup " + player.getNameForScoreboard()))
         .withColor(msgTextColor));
 
     sleepMsgText = playerText.copy().append(sleepMsgText);
