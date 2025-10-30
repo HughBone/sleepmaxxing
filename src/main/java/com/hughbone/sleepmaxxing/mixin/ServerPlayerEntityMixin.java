@@ -20,7 +20,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(ServerPlayerEntity.class)
 public abstract class ServerPlayerEntityMixin {
 
-  @Shadow public abstract ServerWorld getWorld();
+  @Shadow public abstract ServerWorld getEntityWorld();
 
   @Inject(method = "trySleep",
     at = @At(value = "INVOKE",
@@ -47,7 +47,7 @@ public abstract class ServerPlayerEntityMixin {
 
     sleepMsgText = playerText.copy().append(sleepMsgText);
 
-    for (ServerPlayerEntity serverPlayerEntity : this.getWorld().getPlayers()) {
+    for (ServerPlayerEntity serverPlayerEntity : this.getEntityWorld().getPlayers()) {
       serverPlayerEntity.sendMessage(sleepMsgText, false);
     }
   }
