@@ -12,10 +12,10 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.commands.Commands;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
 
 public class Main implements ModInitializer {
 
@@ -24,63 +24,63 @@ public class Main implements ModInitializer {
 
   private void initWakeCommand() {
     CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-      dispatcher.register(CommandManager
+      dispatcher.register(Commands
         .literal("wakeup")
-        .then(CommandManager.argument("player", StringArgumentType.string()).executes((
+        .then(Commands.argument("player", StringArgumentType.string()).executes((
           ctx -> {
-            ServerPlayerEntity waker = ctx.getSource().getPlayer();
+            ServerPlayer waker = ctx.getSource().getPlayer();
             if (waker == null) {
               return 1;
             }
             String sleeperName = StringArgumentType.getString(ctx, "player");
-            String wakerName = waker.getNameForScoreboard();
-            Text feedbackMsg;
+            String wakerName = waker.getScoreboardName();
+            Component feedbackMsg;
 
             if (wakerName.equals(sleeperName)) {
-              feedbackMsg = Text
+              feedbackMsg = Component
                 .literal("imagine waking yourself up \uD83D\uDE02")
-                .formatted(Formatting.GRAY)
-                .formatted(Formatting.ITALIC);
+                .withStyle(ChatFormatting.GRAY)
+                .withStyle(ChatFormatting.ITALIC);
 
-              waker.sendMessage(feedbackMsg, false);
+              waker.displayClientMessage(feedbackMsg, false);
               return 1;
             }
 
-            ServerPlayerEntity sleeper = ctx
+            ServerPlayer sleeper = ctx
               .getSource()
               .getServer()
-              .getPlayerManager()
               .getPlayerList()
+              .getPlayers()
               .stream()
-              .filter(player -> sleeperName.equals(player.getNameForScoreboard()))
+              .filter(player -> sleeperName.equals(player.getScoreboardName()))
               .findFirst()
               .orElse(null);
 
             if (sleeper == null) {
-              feedbackMsg = Text
+              feedbackMsg = Component
                 .literal(sleeperName + " is offline. Who you trying to wake up?")
-                .formatted(Formatting.GRAY)
-                .formatted(Formatting.ITALIC);
+                .withStyle(ChatFormatting.GRAY)
+                .withStyle(ChatFormatting.ITALIC);
             } else if (sleeper.isSleeping()) {
-              feedbackMsg = Text
+              feedbackMsg = Component
                 .literal("you woke up " + sleeperName + "!")
-                .formatted(Formatting.GRAY)
-                .formatted(Formatting.ITALIC);
+                .withStyle(ChatFormatting.GRAY)
+                .withStyle(ChatFormatting.ITALIC);
 
-              Text wakeupMsg = Text
+              Component wakeupMsg = Component
                 .literal("message from " + sleeperName + ": " + Main.wakeMsg)
-                .formatted(Formatting.GRAY)
-                .formatted(Formatting.ITALIC);
-              sleeper.sendMessage(wakeupMsg, false);
-              sleeper.wakeUp();
+                .withStyle(ChatFormatting.GRAY)
+                .withStyle(ChatFormatting.ITALIC);
+              sleeper.displayClientMessage(wakeupMsg, false);
+              sleeper.stopSleeping();
             } else {
-              feedbackMsg = Text
+              feedbackMsg = Component
                 .literal(sleeperName + " is already awake.")
-                .formatted(Formatting.GRAY)
-                .formatted(Formatting.ITALIC);
+                .withStyle(ChatFormatting.GRAY)
+                .withStyle(ChatFormatting.ITALIC);
             }
 
-            waker.sendMessage(feedbackMsg, false);
+            waker.displayClientMessage(feedbackMsg, false);
             return 1;
           }
         ))));

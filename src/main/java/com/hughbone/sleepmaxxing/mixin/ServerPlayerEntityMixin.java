@@ -3,52 +3,52 @@ package com.hughbone.sleepmaxxing.mixin;
 import com.hughbone.sleepmaxxing.Main;
 import com.mojang.datafixers.util.Either;
 import java.util.Random;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.ClickEvent;
-import net.minecraft.text.HoverEvent;
-import net.minecraft.text.Text;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Unit;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(ServerPlayerEntity.class)
+@Mixin(ServerPlayer.class)
 public abstract class ServerPlayerEntityMixin {
 
-  @Shadow public abstract ServerWorld getEntityWorld();
+  @Shadow public abstract ServerLevel level();
 
-  @Inject(method = "trySleep",
+  @Inject(method = "startSleepInBed",
     at = @At(value = "INVOKE",
-      target = "Lnet/minecraft/server/world/ServerWorld;updateSleepingPlayers()V",
+      target = "Lnet/minecraft/server/level/ServerLevel;updateSleepingPlayerList()V",
       shift = At.Shift.AFTER))
   private void sendSleepingStatus(
     BlockPos pos,
-    CallbackInfoReturnable<Either<PlayerEntity.SleepFailureReason, Unit>> cir)
+    CallbackInfoReturnable<Either<Player.BedSleepingProblem, Unit>> cir)
   {
-    ServerPlayerEntity player = (ServerPlayerEntity) (Object) this;
+    ServerPlayer player = (ServerPlayer) (Object) this;
     String randomMsg = Main.sleepMsgs.get(new Random().nextInt(Main.sleepMsgs.size()));
     int playerTextColor = 0xC1F1FF;
     int msgTextColor = 0x00FFA6;
 
-    Text playerText =
-      Text.literal(player.getNameForScoreboard()).styled(style -> style.withColor(playerTextColor));
+    Component playerText =
+      Component.literal(player.getScoreboardName()).withStyle(style -> style.withColor(playerTextColor));
 
-    Text sleepMsgText = Text
+    Component sleepMsgText = Component
       .literal(" " + randomMsg)
-      .styled(style -> style
-        .withHoverEvent(new HoverEvent.ShowText(Text.of("wake")))
-        .withClickEvent(new ClickEvent.RunCommand("/wakeup " + player.getNameForScoreboard()))
+      .withStyle(style -> style
+        .withHoverEvent(new HoverEvent.ShowText(Component.nullToEmpty("wake")))
+        .withClickEvent(new ClickEvent.RunCommand("/wakeup " + player.getScoreboardName()))
         .withColor(msgTextColor));
 
     sleepMsgText = playerText.copy().append(sleepMsgText);
 
-    for (ServerPlayerEntity serverPlayerEntity : this.getEntityWorld().getPlayers()) {
-      serverPlayerEntity.sendMessage(sleepMsgText, false);
+    for (ServerPlayer serverPlayerEntity : this.level().players()) {
+      serverPlayerEntity.displayClientMessage(sleepMsgText, false);
     }
   }
 
