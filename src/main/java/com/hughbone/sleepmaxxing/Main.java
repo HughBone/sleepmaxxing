@@ -68,7 +68,7 @@ public class Main implements ModInitializer {
                 .withStyle(ChatFormatting.ITALIC);
 
               Component wakeupMsg = Component
-                .literal("message from " + sleeperName + ": " + Main.wakeMsg)
+                .literal("message from " + wakerName + ": " + Main.wakeMsg)
                 .withStyle(ChatFormatting.GRAY)
                 .withStyle(ChatFormatting.ITALIC);
               sleeper.displayClientMessage(wakeupMsg, false);
