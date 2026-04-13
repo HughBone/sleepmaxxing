@@ -42,7 +42,7 @@ public class Main implements ModInitializer {
                 .withStyle(ChatFormatting.GRAY)
                 .withStyle(ChatFormatting.ITALIC);
 
-              waker.displayClientMessage(feedbackMsg, false);
+              waker.sendSystemMessage(feedbackMsg, false);
               return 1;
             }
 
@@ -71,7 +71,7 @@ public class Main implements ModInitializer {
                 .literal("message from " + wakerName + ": " + Main.wakeMsg)
                 .withStyle(ChatFormatting.GRAY)
                 .withStyle(ChatFormatting.ITALIC);
-              sleeper.displayClientMessage(wakeupMsg, false);
+              sleeper.sendSystemMessage(wakeupMsg, false);
               sleeper.stopSleeping();
             } else {
               feedbackMsg = Component
@@ -80,7 +80,7 @@ public class Main implements ModInitializer {
                 .withStyle(ChatFormatting.ITALIC);
             }
 
-            waker.displayClientMessage(feedbackMsg, false);
+            waker.sendSystemMessage(feedbackMsg, false);
             return 1;
           }
         ))));

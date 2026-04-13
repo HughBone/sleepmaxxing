@@ -50,7 +50,7 @@ public abstract class ServerPlayerEntityMixin {
     sleepMsgText = playerText.copy().append(sleepMsgText);
 
     for (ServerPlayer serverPlayerEntity : server.getPlayerList().getPlayers()) {
-      serverPlayerEntity.displayClientMessage(sleepMsgText, false);
+      serverPlayerEntity.sendSystemMessage(sleepMsgText, false);
     }
   }
 
