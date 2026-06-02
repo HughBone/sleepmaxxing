@@ -16,6 +16,12 @@ public class ModStats {
   public static Identifier SLEEP_WAR_WINS;
 
   public static void register() {
+    // These are custom stats in the "sleepmaxxing" namespace, tracked server-side
+    // only. Vanilla clients don't have them, so they must never be sent to clients:
+    //   - RegistrySyncManagerMixin strips them from the login registry-sync payload
+    //     (otherwise the client disconnects with a RemapException).
+    //   - ServerStatsCounterMixin strips them from the per-player award-stats packet
+    //     (otherwise the stats screen crashes the client).
     KICKS_GIVEN = makeCustomStat("sleep_kicks_given", StatFormatter.DEFAULT);
     TIMES_KICKED_OUT = makeCustomStat("sleep_kicked_out", StatFormatter.DEFAULT);
     SLEEP_WAR_WINS = makeCustomStat("sleep_war_wins", StatFormatter.DEFAULT);

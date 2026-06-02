@@ -4,7 +4,9 @@
   "package": "com.hughbone.sleepmaxxing.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "ServerPlayerEntityMixin"
+    "ServerPlayerEntityMixin",
+    "ServerStatsCounterMixin",
+    "RegistrySyncManagerMixin"
   ],
   "injectors": {
     "defaultRequire": 1
