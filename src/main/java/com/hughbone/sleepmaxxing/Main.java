@@ -10,6 +10,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Deque;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.ChatFormatting;
@@ -21,6 +25,44 @@ public class Main implements ModInitializer {
 
   public static final ArrayList<String> sleepMsgs = new ArrayList<>();
   public static final String wakeMsg = "Rise and shine :)";
+
+  // Sleep war: how many times in the last minute each player was kicked out of bed
+  // by *someone else*. Used to detect sleep war wins on successful sleep.
+  private static final ConcurrentHashMap<UUID, Deque<Long>> kickTimestamps =
+    new ConcurrentHashMap<>();
+  private static final long SLEEP_WAR_WINDOW_MS = 60_000L;
+  private static final int SLEEP_WAR_KICK_THRESHOLD = 3;
+
+  // Record that a player was kicked out of bed by someone else (not a self-kick).
+  public static void recordKick(UUID sleeperId) {
+    long now = System.currentTimeMillis();
+    Deque<Long> times = kickTimestamps.computeIfAbsent(sleeperId, k -> new ConcurrentLinkedDeque<>());
+    times.addLast(now);
+    pruneOld(times, now);
+  }
+
+  // Called when a player successfully falls asleep. If they were kicked out
+  // SLEEP_WAR_KICK_THRESHOLD+ times within the last minute, that's a sleep war win.
+  public static boolean checkSleepWarWin(UUID sleeperId) {
+    Deque<Long> times = kickTimestamps.get(sleeperId);
+    if (times == null) {
+      return false;
+    }
+    long now = System.currentTimeMillis();
+    pruneOld(times, now);
+    if (times.size() >= SLEEP_WAR_KICK_THRESHOLD) {
+      times.clear();
+      return true;
+    }
+    return false;
+  }
+
+  private static void pruneOld(Deque<Long> times, long now) {
+    Long head;
+    while ((head = times.peekFirst()) != null && now - head > SLEEP_WAR_WINDOW_MS) {
+      times.pollFirst();
+    }
+  }
 
   private void initWakeCommand() {
     CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
@@ -37,11 +79,23 @@ public class Main implements ModInitializer {
             Component feedbackMsg;
 
             if (wakerName.equals(sleeperName)) {
-              feedbackMsg = Component
-                .literal("imagine waking yourself up \uD83D\uDE02")
-                .withStyle(ChatFormatting.GRAY)
-                .withStyle(ChatFormatting.ITALIC);
+              if (waker.isSleeping()) {
+                waker.stopSleeping();
+                feedbackMsg = Component
+                  .literal("you accidentally kicked yourself out of bed \uD83D\uDE02")
+                  .withStyle(ChatFormatting.GRAY)
+                  .withStyle(ChatFormatting.ITALIC);
+                // Track stats: waker kicked someone out, sleeper was kicked out.
+                waker.awardStat(ModStats.KICKS_GIVEN);
+                waker.awardStat(ModStats.TIMES_KICKED_OUT);
+              } else {
+                feedbackMsg = Component
+                  .literal("already awake \uD83D\uDE02")
+                  .withStyle(ChatFormatting.GRAY)
+                  .withStyle(ChatFormatting.ITALIC);
+              }
 
+              // Self-kicks don't count toward sleep wars.
               waker.sendSystemMessage(feedbackMsg, false);
               return 1;
             }
@@ -73,6 +127,11 @@ public class Main implements ModInitializer {
                 .withStyle(ChatFormatting.ITALIC);
               sleeper.sendSystemMessage(wakeupMsg, false);
               sleeper.stopSleeping();
+
+              // Track stats: waker kicked someone out, sleeper was kicked out.
+              waker.awardStat(ModStats.KICKS_GIVEN);
+              sleeper.awardStat(ModStats.TIMES_KICKED_OUT);
+              recordKick(sleeper.getUUID());
             } else {
               feedbackMsg = Component
                 .literal(sleeperName + " is already awake.")
@@ -133,6 +192,7 @@ public class Main implements ModInitializer {
       }
     }
 
+    ModStats.register();
     initWakeCommand();
 
     System.out.println("sleepmaxxing loaded!");

@@ -1,7 +1,9 @@
 package com.hughbone.sleepmaxxing.mixin;
 
 import com.hughbone.sleepmaxxing.Main;
+import com.hughbone.sleepmaxxing.ModStats;
 import com.mojang.datafixers.util.Either;
+import net.minecraft.ChatFormatting;
 import java.util.Random;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.ClickEvent;
@@ -16,6 +18,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(ServerPlayer.class)
@@ -51,6 +54,30 @@ public abstract class ServerPlayerEntityMixin {
 
     for (ServerPlayer serverPlayerEntity : server.getPlayerList().getPlayers()) {
       serverPlayerEntity.sendSystemMessage(sleepMsgText, false);
+    }
+  }
+
+  // Fires when a player gets out of bed. Only a full night's sleep (slept long
+  // enough to skip the night) counts as a successful sleep; kicks and early
+  // exits leave isSleepingLongEnough() false. Checked at HEAD before the sleep
+  // timer is reset.
+  @Inject(method = "stopSleepInBed", at = @At("HEAD"))
+  private void onStopSleepInBed(boolean wakeImmediately, boolean updateLevelForSleeping, CallbackInfo ci) {
+    ServerPlayer player = (ServerPlayer) (Object) this;
+    if (!player.isSleepingLongEnough()) {
+      return;
+    }
+
+    // Sleep war win: successfully slept after being kicked out 3+ times in the last minute.
+    if (Main.checkSleepWarWin(player.getUUID())) {
+      player.awardStat(ModStats.SLEEP_WAR_WINS);
+      Component winMsg = Component
+        .literal(player.getScoreboardName() + " won a sleep war! 🛌")
+        .withStyle(ChatFormatting.GOLD)
+        .withStyle(ChatFormatting.BOLD);
+      for (ServerPlayer serverPlayerEntity : server.getPlayerList().getPlayers()) {
+        serverPlayerEntity.sendSystemMessage(winMsg, false);
+      }
     }
   }
 
