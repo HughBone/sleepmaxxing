@@ -18,8 +18,14 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.Commands;
+import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LightningBolt;
+import net.minecraft.world.entity.projectile.ShulkerBullet;
 
 public class Main implements ModInitializer {
 
@@ -34,11 +40,45 @@ public class Main implements ModInitializer {
   private static final int SLEEP_WAR_KICK_THRESHOLD = 3;
 
   // Record that a player was kicked out of bed by someone else (not a self-kick).
-  public static void recordKick(UUID sleeperId) {
+  // Returns the number of kicks within the current sleep war window (including this one).
+  public static int recordKick(UUID sleeperId) {
     long now = System.currentTimeMillis();
     Deque<Long> times = kickTimestamps.computeIfAbsent(sleeperId, k -> new ConcurrentLinkedDeque<>());
     times.addLast(now);
     pruneOld(times, now);
+    return times.size();
+  }
+
+  // Once a player is in a sleep war (the sleeper has been kicked SLEEP_WAR_KICK_THRESHOLD+
+  // times in the window), every new kick has a small chance to smite the waker with lightning
+  // and/or pelt them with a shulker bullet spawned a couple blocks overhead so it homes back
+  // down onto them.
+  public static boolean punishSleepWar(ServerPlayer waker, int kickCount) {
+    if (kickCount < SLEEP_WAR_KICK_THRESHOLD) {
+      return false;
+    }
+
+    ServerLevel level = waker.level();
+    java.util.Random random = new java.util.Random();
+
+    // 1% chance: lightning strike on the waker.
+    if (random.nextDouble() < 0.01) {
+      LightningBolt bolt = EntityType.LIGHTNING_BOLT.create(level, EntitySpawnReason.TRIGGERED);
+      bolt.snapTo(waker.getX(), waker.getY(), waker.getZ());
+      level.addFreshEntity(bolt);
+      return true;
+    }
+
+    // 0.5% chance: shulker bullet spawned a couple blocks above the waker, homing onto them.
+    // It must spawn offset above the target, otherwise it fizzles instead of striking.
+    if (random.nextDouble() < 0.005) {
+      ShulkerBullet bullet = new ShulkerBullet(level, waker, waker, Direction.Axis.Y);
+      bullet.snapTo(waker.getX(), waker.getY() + 3.0, waker.getZ());
+      level.addFreshEntity(bullet);
+      return true;
+    }
+
+    return false;
   }
 
   // Called when a player successfully falls asleep. If they were kicked out
@@ -116,6 +156,10 @@ public class Main implements ModInitializer {
                 .withStyle(ChatFormatting.GRAY)
                 .withStyle(ChatFormatting.ITALIC);
             } else if (sleeper.isSleeping()) {
+              int kickCount = recordKick(sleeper.getUUID());
+              boolean isWakerPunished = punishSleepWar(waker, kickCount);
+              if (isWakerPunished) return 1;
+
               feedbackMsg = Component
                 .literal("you woke up " + sleeperName + "!")
                 .withStyle(ChatFormatting.GRAY)
@@ -131,7 +175,6 @@ public class Main implements ModInitializer {
               // Track stats: waker kicked someone out, sleeper was kicked out.
               waker.awardStat(ModStats.KICKS_GIVEN);
               sleeper.awardStat(ModStats.TIMES_KICKED_OUT);
-              recordKick(sleeper.getUUID());
             } else {
               feedbackMsg = Component
                 .literal(sleeperName + " is already awake.")
