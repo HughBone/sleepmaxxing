@@ -24,6 +24,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.projectile.ShulkerBullet;
 
@@ -63,7 +64,7 @@ public class Main implements ModInitializer {
 
     // 1% chance: lightning strike on the waker.
     if (random.nextDouble() < 0.01) {
-      LightningBolt bolt = EntityType.LIGHTNING_BOLT.create(level, EntitySpawnReason.TRIGGERED);
+      LightningBolt bolt = EntityTypes.LIGHTNING_BOLT.create(level, EntitySpawnReason.TRIGGERED);
       bolt.snapTo(waker.getX(), waker.getY(), waker.getZ());
       level.addFreshEntity(bolt);
       return true;
