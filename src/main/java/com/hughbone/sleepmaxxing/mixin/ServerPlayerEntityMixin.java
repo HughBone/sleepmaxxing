@@ -12,7 +12,10 @@ import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Unit;
+import net.minecraft.world.attribute.BedRule;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.AbstractBedBlock;
+import net.minecraft.world.level.block.state.BlockState;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -31,6 +34,9 @@ public abstract class ServerPlayerEntityMixin {
       target = "Lnet/minecraft/server/level/ServerLevel;updateSleepingPlayerList()V",
       shift = At.Shift.AFTER))
   private void sendSleepingStatus(
+    AbstractBedBlock bedBlock,
+    BlockState bedBlockState,
+    BedRule rule,
     BlockPos pos,
     CallbackInfoReturnable<Either<Player.BedSleepingProblem, Unit>> cir)
   {
